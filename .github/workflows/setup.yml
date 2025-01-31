@@ -1,0 +1,28 @@
+name: Setup FoxetGSI Tool
+
+on:
+  push:
+    branches:
+      - main  # Запускать при пуше в ветку main
+  pull_request:
+    branches:
+      - main  # Запускать при создании PR в ветку main
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Clone FoxetGSI-tool with submodules
+        run: |
+          git clone --recurse-submodules https://github.com/FoxetGSI/FoxetGSI-tool.git
+          cd FoxetGSI-tool
+
+      - name: Run setup script
+        run: |
+          cd FoxetGSI-tool
+          chmod +x setup.sh  # Убедитесь, что скрипт исполняемый
+          ./setup.sh
