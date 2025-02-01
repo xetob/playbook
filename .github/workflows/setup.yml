@@ -33,7 +33,6 @@ jobs:
           cd FoxetGSI-tool
           sudo bash setup.sh
           sudo apt-get install -y p7zip-full
-          sudo chmod -R 777 $GITHUB_WORKSPACE
 
       - name: Build GSI
         env:
@@ -42,38 +41,59 @@ jobs:
           ROM_TYPE_OPTION: ${{ github.event.inputs.rom_type_option }}
         run: |
           cd FoxetGSI-tool
-          sudo mkdir -p output
-          sudo chmod 777 output
-          
           if [ "$ROM_TYPE_OPTION" = "AB" ]; then
             sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --ab
           else
             sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --aonly
           fi
 
-      - name: Pack IMG to 7z
+      - name: Prepare artifacts directory
         run: |
-          cd FoxetGSI-tool/output
-          sudo mkdir -p $GITHUB_WORKSPACE/artifacts
-          sudo chmod 777 $GITHUB_WORKSPACE/artifacts
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          sudo chmod -R 777 $GITHUB_WORKSPACE/artifacts
+
+      - name: Pack IMG to 7z
+        id: pack
+        run: |
+          cd $GITHUB_WORKSPACE/FoxetGSI-tool/output || exit 1
           
+          # Проверка наличия файлов
+          if [ $(ls -1 *.img 2>/dev/null | wc -l) -eq 0 ]; then
+            echo "::error::No .img files found!"
+            exit 1
+          fi
+
+          timestamp=$(date +'%d.%m.%y_%H.%M')
           for img_file in *.img; do
-            base_name=$(basename "$img_file" .img)
-            7z a "$GITHUB_WORKSPACE/artifacts/${base_name}.7z" "$img_file"
+            base_name="${img_file%.img}"
+            
+            # Архивирование с абсолютным путем
+            7z a -mmt=on "$GITHUB_WORKSPACE/artifacts/${base_name}.7z" "$img_file"
+            
+            # Экспорт переменных
+            echo "release_name=${base_name}_${timestamp}" >> $GITHUB_OUTPUT
+            echo "tag_name=${base_name}-${timestamp}" >> $GITHUB_OUTPUT
+            echo "file_name=${base_name}.7z" >> $GITHUB_OUTPUT
           done
 
-      - name: Debug artifacts
+      - name: Verify artifacts
         run: |
-          echo "=== ARTIFACTS DEBUG ==="
-          ls -la $GITHUB_WORKSPACE/artifacts
-          echo "======================="
+          echo "=== Artifacts list ==="
+          ls -lah $GITHUB_WORKSPACE/artifacts
+          echo "======================"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: foxet-gsi-$(date +'%d.%m.%y-%H%M')
-          name: FoxetGSI Build $(date +'%d.%m.%Y %H:%M')
-          body: "Automated GSI build"
-          files: ${{ github.workspace }}/artifacts/*.7z
+          tag_name: ${{ steps.pack.outputs.tag_name }}
+          name: ${{ steps.pack.outputs.release_name }}
+          body: |
+            Automated GSI Build
+            - ROM Type: ${{ github.event.inputs.rom_type }}
+            - File: ${{ steps.pack.outputs.file_name }}
+          files: |
+            ${{ github.workspace }}/artifacts/${{ steps.pack.outputs.file_name }}
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
