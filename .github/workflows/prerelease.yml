@@ -1,40 +1,32 @@
-name: Create Release
+name: Build and Release
 
 on:
   push:
     branches:
-      - main  # Запускаем workflow при пуше в основную ветку
+      - main
 
 jobs:
-  build:
+  build_release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
+      - name Check out repository
         uses: actions/checkout@v2
 
-      - name: Create directory
+      - name Create folder and add test file
         run: |
           mkdir 1
-          echo "Hello, World!" > 1/example.txt  # Пример файла для добавления в папку
+          echo "Тестовый файл" > 1/file.txt
 
-      - name: Install p7zip
-        run: sudo apt-get install p7zip-full
+      - name Install 7-Zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
-      - name: Create 7z archive
-        run: |
-          7z a 1.7z 1/*
+      - name Compress folder using 7zip
+        run: 7z a 1.7z 1/
 
-      - name: Create tag
-        id: create_tag
-        run: |
-          TAG_NAME="v1.0"  # Замените на нужное имя тега
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-
-      - name: Upload release asset
+      - name Create GitHub Release
+        id: create_release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 1.7z
+          tag: "1.0"
+          release_name: "Release 1.0"
+          files: 1.7z
