@@ -23,9 +23,11 @@ jobs:
 
       - name: Install packages
         run: |
+          cd FoxetGSI-tool
           bash setup.sh
 
       - name: Build GSI
         run: |
+          cd FoxetGSI-tool
           bash url2GSI.sh https://oxygenos.oneplus.net/OnePlus7ProOxygen_21.O.07_OTA_007_all_1905120542_fc480574576b4843.zip OxygenOS
           
