@@ -36,9 +36,9 @@ jobs:
 
       - name: Build GSI
         env:
-          ROM_TYPE: ${{ github.event.inputs.rom_type }} # Используем входные параметры
-          ROM_LINK: ${{ github.event.inputs.rom_link }} # Используем входные параметры
-          ROM_TYPE_OPTION: ${{ github.event.inputs.rom_type_option }} # Новое значение
+          ROM_TYPE: ${{ github.event.inputs.rom_type }}
+          ROM_LINK: ${{ github.event.inputs.rom_link }}
+          ROM_TYPE_OPTION: ${{ github.event.inputs.rom_type_option }}
         run: |
           cd FoxetGSI-tool
           if [ "$ROM_TYPE_OPTION" == "AB" ]; then
@@ -46,3 +46,31 @@ jobs:
           else
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
+
+      - name: Upload GSI artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: GSI-images
+          path: FoxetGSI-tool/output/*.img
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: GSI Build ${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./FoxetGSI-tool/output/*.img
+          asset_name: GSI-${{ github.run_number }}.img
+          asset_content_type: application/octet-stream
