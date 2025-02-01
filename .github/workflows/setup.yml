@@ -47,7 +47,7 @@ jobs:
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
 
-        - name: Find .img files
+      - name: Find .img files
         id: find_images
         run: |
           echo "Finding .img files..."
