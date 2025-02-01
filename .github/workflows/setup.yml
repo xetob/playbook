@@ -21,24 +21,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Подготовка окружения
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Шаг 2: Клонирование инструмента сборки
       - name: Clone FoxetGSI-tool with submodules
         run: |
           git clone --recurse-submodules https://github.com/FoxetGSI/FoxetGSI-tool.git
           cd FoxetGSI-tool
 
-      # Шаг 3: Установка зависимостей
       - name: Install packages
         run: |
           cd FoxetGSI-tool
           sudo bash setup.sh
           sudo apt-get install -y p7zip-full  # Добавляем 7zip
 
-      # Шаг 4: Сборка GSI
       - name: Build GSI
         env:
           ROM_TYPE: ${{ github.event.inputs.rom_type }}
@@ -47,32 +43,38 @@ jobs:
         run: |
           cd FoxetGSI-tool
           if [ "$ROM_TYPE_OPTION" == "AB" ]; then
-            sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --ab
+            sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --ab
           else
-            sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
+            sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --aonly
           fi
 
-      # Шаг 5: Упаковка в 7z с динамическим именем
       - name: Pack IMG to 7z
         id: pack
         run: |
-          cd FoxetGSI-tool/output
+          cd FoxetGSI-tool/output || exit 1
           mkdir -p ../../artifacts
-          
-          for img_file in *.img; do
-            if [ -f "$img_file" ]; then
-              base_name=$(basename "$img_file" .img)
-              timestamp=$(date +'%d.%m.%y_%H.%M')
-              7z a "../../artifacts/${base_name}.7z" "$img_file"
-              
-              # Формируем выходные переменные
-              echo "release_name=${base_name}_${timestamp}" >> $GITHUB_OUTPUT
-              echo "tag_name=${base_name}-${timestamp}" >> $GITHUB_OUTPUT
-              echo "file_path=../../artifacts/${base_name}.7z" >> $GITHUB_OUTPUT
-            done
+
+          # Проверка наличия .img файлов
+          if ! ls *.img >/dev/null 2>&1; then
+            echo "::error::No .img files found in output directory!"
+            exit 1
           fi
 
-      # Шаг 6: Публикация релиза
+          # Обработка каждого .img файла
+          for img_file in *.img; do
+            [[ ! -f "$img_file" ]] && continue
+
+            base_name="${img_file%.img}"
+            timestamp=$(date +'%d.%m.%y_%H.%M')
+            
+            7z a "../../artifacts/${base_name}.7z" "$img_file"
+
+            # Экспорт переменных
+            echo "release_name=${base_name}_${timestamp}" >> $GITHUB_OUTPUT
+            echo "tag_name=${base_name}-${timestamp}" >> $GITHUB_OUTPUT
+            echo "file_path=../../artifacts/${base_name}.7z" >> $GITHUB_OUTPUT
+          done
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
