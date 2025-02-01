@@ -29,5 +29,5 @@ jobs:
       - name: Build GSI
         run: |
           cd FoxetGSI-tool
-          bash url2GSI.sh https://dl.google.com/dl/android/aosp/sunfish-sp1a.210812.015-factory-5a1091a3.zip?hl=ru Pixel
+          bash url2GSI.sh https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip Pixel
           
