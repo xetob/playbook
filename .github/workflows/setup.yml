@@ -1,12 +1,16 @@
 name: Setup FoxetGSI Tool
 
 on:
-  push:
-    branches:
-      - main  # Запускать при пуше в ветку main
-  pull_request:
-    branches:
-      - main  # Запускать при создании PR в ветку main
+  workflow_dispatch:
+    inputs:
+      rom_type:
+        description: 'Type of ROM (e.g., Pixel, AOSP)'
+        required: true
+        default: 'Pixel'
+      rom_link:
+        description: 'Link to the ROM file'
+        required: true
+        default: 'https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip'
 
 jobs:
   setup:
@@ -27,7 +31,9 @@ jobs:
           sudo bash setup.sh
 
       - name: Build GSI
+        env:
+          ROM_TYPE: ${{ github.event.inputs.rom_type }} # Используем входные параметры
+          ROM_LINK: ${{ github.event.inputs.rom_link }} # Используем входные параметры
         run: |
           cd FoxetGSI-tool
-          sudo bash url2GSI.sh https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip Pixel
-          
+          sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE
