@@ -1,21 +1,3 @@
-name: FoxetGSI-builder
-
-on:
-  workflow_dispatch:
-    inputs:
-      rom_type:
-        description: 'Type of ROM (e.g., Pixel, AOSP)'
-        required: true
-        default: 'Pixel'
-      rom_link:
-        description: 'Link to the ROM file'
-        required: true
-        default: 'https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip'
-      rom_type_option:
-        description: 'Type of GSI (AB or A-only)'
-        required: true
-        default: 'AB'
-
 jobs:
   Build_GSI:
     runs-on: ubuntu-latest
@@ -47,35 +29,18 @@ jobs:
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
 
-      - name: Upload GSI artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: GSI-images
-          path: FoxetGSI-tool/output/*.img
+      - name: Package .img file into .tar.xz
+        run: |
+          cd FoxetGSI-tool/output/
+          # Find the .img file (assuming there is only one)
+          IMG_FILE=$(ls *.img)
+          
+          # Create a tar.xz archive with the same name (without .img extension)
+          tar -cJf "${IMG_FILE%.img}.tar.xz" "$IMG_FILE"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: FoxetGSI-tool/output/*.tar.xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.run_number }}
-          release_name: GSI Build ${{ github.run_number }}
-          draft: false
-          prerelease: false
-
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd FoxetGSI-tool/output
-          for file in *.img; do
-            echo "Uploading $file"
-            gh release upload ${{ github.run_number }} "$file" --cname "$file"
-          done
