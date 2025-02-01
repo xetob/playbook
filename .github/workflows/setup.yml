@@ -47,9 +47,23 @@ jobs:
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
 
-      - name: Create tar.xz archives for each .img file
+      - name: Create Release
+        id: create_release
         run: |
-          cd FoxetGSI-tool/output
-          for img_file in *.img; do
-            sudo tar -cJf "${img_file%.img}.tar.xz" "$img_file"
-          done
+          RELEASE_NAME="GSI Release - ${{ github.event.inputs.rom_type }} - $(date +'%Y-%m-%d')"
+          echo "Creating release: $RELEASE_NAME"
+          RESPONSE=$(curl -s -X POST https://api.github.com/repos/${{ github.repository }}/releases 
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" 
+            -d "{"tag_name": "$RELEASE_NAME", "name": "$RELEASE_NAME", "body": "Release of GSI built from ${ROM_LINK}."}")
+          echo "Release created: $RELEASE_NAME"
+          echo "::set-output name=release_id::$(echo $RESPONSE | jq -r .id)"
+
+      - name: Upload GSI to Release
+        run: |
+          echo "Uploading GSI to release..."
+          GSI_FILE_PATH="FoxetGSI-tool/output/your_gsi_file.img" # Укажите правильный путь к вашему GSI файлу
+          RELEASE_ID=${{ steps.create_release.outputs.release_id }}
+          curl -s -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $GSI_FILE_PATH)" 
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" 
+            -H "Content-Type: application/octet-stream" 
+            --data-binary @"$GSI_FILE_PATH"
