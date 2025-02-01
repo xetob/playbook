@@ -24,10 +24,10 @@ jobs:
       - name: Install packages
         run: |
           cd FoxetGSI-tool
-          bash setup.sh
+          sudo bash setup.sh
 
       - name: Build GSI
         run: |
           cd FoxetGSI-tool
-          bash url2GSI.sh https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip Pixel
+          sudo bash url2GSI.sh https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip Pixel
           
