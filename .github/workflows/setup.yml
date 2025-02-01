@@ -24,16 +24,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Clone FoxetGSI-tool with submodules
+      - name: Clone FoxetGSI-tool
         run: |
           git clone --recurse-submodules https://github.com/FoxetGSI/FoxetGSI-tool.git
-          cd FoxetGSI-tool
 
-      - name: Install packages
+      - name: Install dependencies
         run: |
           cd FoxetGSI-tool
           sudo bash setup.sh
-          sudo apt-get install -y p7zip-full  # Добавляем 7zip
+          sudo apt-get install -y p7zip-full
 
       - name: Build GSI
         env:
@@ -42,45 +41,59 @@ jobs:
           ROM_TYPE_OPTION: ${{ github.event.inputs.rom_type_option }}
         run: |
           cd FoxetGSI-tool
-          if [ "$ROM_TYPE_OPTION" == "AB" ]; then
+          if [ "$ROM_TYPE_OPTION" = "AB" ]; then
             sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --ab
           else
             sudo bash url2GSI.sh "$ROM_LINK" "$ROM_TYPE" --aonly
           fi
 
+      - name: Prepare artifacts directory
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/artifacts
+          sudo chmod 777 $GITHUB_WORKSPACE/artifacts
+
       - name: Pack IMG to 7z
         id: pack
         run: |
           cd FoxetGSI-tool/output || exit 1
-          mkdir -p ../../artifacts
-
+          
           # Проверка наличия .img файлов
-          if ! ls *.img >/dev/null 2>&1; then
-            echo "::error::No .img files found in output directory!"
+          if [ $(ls -1 *.img 2>/dev/null | wc -l) -eq 0 ]; then
+            echo "::error::No .img files found!"
             exit 1
           fi
 
-          # Обработка каждого .img файла
+          # Обработка каждого файла
           for img_file in *.img; do
-            [[ ! -f "$img_file" ]] && continue
-
+            echo "Processing: $img_file"
             base_name="${img_file%.img}"
             timestamp=$(date +'%d.%m.%y_%H.%M')
             
-            7z a "../../artifacts/${base_name}.7z" "$img_file"
-
+            # Архивирование с многопоточностью
+            7z a -mmt=on -mx=1 "$GITHUB_WORKSPACE/artifacts/${base_name}.7z" "$img_file"
+            
             # Экспорт переменных
             echo "release_name=${base_name}_${timestamp}" >> $GITHUB_OUTPUT
             echo "tag_name=${base_name}-${timestamp}" >> $GITHUB_OUTPUT
-            echo "file_path=../../artifacts/${base_name}.7z" >> $GITHUB_OUTPUT
           done
+
+      - name: Verify artifacts
+        run: |
+          echo "=== Generated artifacts ==="
+          ls -lh $GITHUB_WORKSPACE/artifacts
+          echo "==========================="
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.pack.outputs.tag_name }}
           name: ${{ steps.pack.outputs.release_name }}
-          body: "Automated GSI build - ${{ steps.pack.outputs.release_name }}"
-          files: ${{ steps.pack.outputs.file_path }}
+          body: |
+            Automated GSI Build
+            - ROM Type: ${{ github.event.inputs.rom_type }}
+            - Build Date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          files: ${{ github.workspace }}/artifacts/*.7z
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
