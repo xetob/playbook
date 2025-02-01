@@ -71,6 +71,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: FoxetGSI-tool/output/*.img
+          asset_path: FoxetGSI-tool/output/
           asset_name: GSI-${{ github.run_number }}.img
           asset_content_type: application/octet-stream
