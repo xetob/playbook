@@ -11,6 +11,10 @@ on:
         description: 'Link to the ROM file'
         required: true
         default: 'https://dl.google.com/dl/android/aosp/barbet-sp1a.210812.015-factory-13f4d9f2.zip'
+      rom_type_option:
+        description: 'Type of GSI (AB or A-only)'
+        required: true
+        default: 'AB'
 
 jobs:
   setup:
@@ -34,6 +38,11 @@ jobs:
         env:
           ROM_TYPE: ${{ github.event.inputs.rom_type }} # Используем входные параметры
           ROM_LINK: ${{ github.event.inputs.rom_link }} # Используем входные параметры
+          ROM_TYPE_OPTION: ${{ github.event.inputs.rom_type_option }} # Новое значение
         run: |
           cd FoxetGSI-tool
-          sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE
+          if [ "$ROM_TYPE_OPTION" == "AB" ]; then
+            sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --ab
+          else
+            sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
+          fi
