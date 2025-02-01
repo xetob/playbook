@@ -51,5 +51,5 @@ jobs:
         run: |
           cd FoxetGSI-tool/output
           for img_file in *.img; do
-            tar -cJf "${img_file%.img}.tar.xz" "$img_file"
+            sudo tar -cJf "${img_file%.img}.tar.xz" "$img_file"
           done
