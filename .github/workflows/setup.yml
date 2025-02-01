@@ -32,6 +32,7 @@ jobs:
       - name: Install packages
         run: |
           cd FoxetGSI-tool
+          sudo apt install jq
           sudo bash setup.sh
 
       - name: Build GSI
