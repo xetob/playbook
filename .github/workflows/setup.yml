@@ -46,33 +46,3 @@ jobs:
           else
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
-
-      - name: Create Release
-        id: create_release
-        run: |
-          RELEASE_NAME="GSI Release - ${{ github.event.inputs.rom_type }} - $(date +'%Y-%m-%d')"
-          echo "Creating release: $RELEASE_NAME"
-          RESPONSE=$(curl -s -X POST https://api.github.com/repos/${{ github.repository }}/releases 
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" 
-            -d "{"tag_name": "$RELEASE_NAME", "name": "$RELEASE_NAME", "body": "Release of GSI built from ${{ github.event.inputs.rom_link }}."}")
-          echo "Release created: $RELEASE_NAME"
-          echo "::set-output name=release_id::$(echo $RESPONSE | jq -r .id)"
-          echo "::set-output name=upload_url::$(echo $RESPONSE | jq -r .upload_url | sed 's/{?name,label}//')"
-
-      - name: Upload GSI to Release
-        run: |
-          echo "Uploading GSI files to release..."
-          GSI_DIR="FoxetGSI-tool/output" # Укажите правильный путь к директории с вашими GSI файлами
-          RELEASE_ID=${{ steps.create_release.outputs.release_id }}
-          
-          for GSI_FILE in "$GSI_DIR"/*.img; do
-            if [ -f "$GSI_FILE" ]; then
-              echo "Uploading $GSI_FILE..."
-              curl -s -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename "$GSI_FILE")" 
-                -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" 
-                -H "Content-Type: application/octet-stream" 
-                --data-binary @"$GSI_FILE"
-            else
-              echo "No .img files found in $GSI_DIR"
-            fi
-          done
