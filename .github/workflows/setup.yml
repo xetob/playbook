@@ -61,7 +61,7 @@ jobs:
       - name: Upload GSI to Release
         run: |
           echo "Uploading GSI to release..."
-          GSI_FILE_PATH="FoxetGSI-tool/output/your_gsi_file.img" # Укажите правильный путь к вашему GSI файлу
+          GSI_FILE_PATH="FoxetGSI-tool/output/*.img"
           RELEASE_ID=${{ steps.create_release.outputs.release_id }}
           curl -s -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $GSI_FILE_PATH)" 
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" 
