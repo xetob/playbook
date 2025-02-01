@@ -17,7 +17,7 @@ on:
         default: 'AB'
 
 jobs:
-  Build GSI:
+  Build_GSI:
     runs-on: ubuntu-latest
 
     steps:
