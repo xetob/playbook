@@ -1,63 +1,40 @@
-name: Archive and Pre-Release
+name: Create Release
 
 on:
-  # Allow manual triggering
-  workflow_dispatch:
-
-env:
-  FILENAME: 'Revi-PB-${{ github.event.workflow_run.started_at }}.apbx'
+  push:
+    branches:
+      - main  # Запускаем workflow при пуше в основную ветку
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
+
+      - name: Create directory
+        run: |
+          mkdir 1
+          echo "Hello, World!" > 1/example.txt  # Пример файла для добавления в папку
+
+      - name: Install p7zip
+        run: sudo apt-get install p7zip-full
+
+      - name: Create 7z archive
+        run: |
+          7z a 1.7z 1/*
+
+      - name: Create tag
+        id: create_tag
+        run: |
+          TAG_NAME="v1.0"  # Замените на нужное имя тега
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+
+      - name: Upload release asset
+        uses: ncipollo/release-action@v1
         with:
-          ref: 'dev'
-
-      - name: Set version
-        id: set_version
-        run: |
-          # Get current date in "YY.MM.DD" format
-          CURRENT_DATE=$(date +%y.%m.%d)
-          echo "VERSION=${CURRENT_DATE}" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Update version
-        run: |
-          $version = "${{ env.VERSION }}"
-          $playbookConfPath = "src\playbook.conf"
-          $finalizeCMDPath = "src\Executables\FINALIZE.cmd"
-
-          (Get-Content -Path $playbookConfPath) -replace '<Version>.*</Version>', "<Version>$version</Version>" | Set-Content -Path $playbookConfPath
-
-          (Get-Content -Path $finalizeCMDPath) -replace 'set version=.+', "set version=$version" | Set-Content -Path $finalizeCMDPath
-        shell: pwsh
-
-      - name: Archive content
-        run: |
-          7z a -pmalte -mhe=on "Revi-PB-${{ env.VERSION }}.apbx" ./src/*
-
-      - name: Generate SHA256
-        run: |
-          $hash = (Get-FileHash -Algorithm SHA256 -Path "Revi-PB-${{ env.VERSION }}.apbx").Hash
-          echo ("HASH=" + $hash) >> $env:GITHUB_ENV
-
-      - name: Release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Uses GitHub token for authentication
-          file: "Revi-PB-${{ env.VERSION }}.apbx"
-          asset_name: "Revi-PB-${{ env.VERSION }}.apbx"
-          tag: ${{ env.VERSION }}
-          overwrite: true
-          release_name: ${{ env.VERSION }}
-          prerelease: true # Set to true for pre-release
-          body: |
-            # Pre-release Download ✨
-
-            ## ⚠️ This is a pre-release version for testing purposes. Installing this can cause issues and may require you to reinstall Windows, use at your own risk. ⚠️
-
-            SHA256: `${{ env.HASH }}`
+          artifacts: 1.7z
