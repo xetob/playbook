@@ -1,32 +1,31 @@
-name: Build and Release
+name: Create and Release Archive
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:  # Запуск вручную через интерфейс GitHub
 
 jobs:
-  build_release:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name Check out repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name Create folder and add test file
-        run: |
-          mkdir 1
-          echo "Тестовый файл" > 1/file.txt
+    - name: Create folder
+      run: mkdir -p 1
 
-      - name Install 7-Zip
-        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+    - name: Install 7zip
+      run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
-      - name Compress folder using 7zip
-        run: 7z a 1.7z 1/
+    - name: Archive folder
+      run: 7z a 1.7z 1/
 
-      - name Create GitHub Release
-        id: create_release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: "1.0"
-          release_name: "Release 1.0"
-          files: 1.7z
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0
+        name: Release 1.0
+        body: Automatic release created by GitHub Actions
+        files: 1.7z
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
