@@ -1,4 +1,4 @@
-name: Setup FoxetGSI Tool
+name: FoxetGSI-builder
 
 on:
   workflow_dispatch:
