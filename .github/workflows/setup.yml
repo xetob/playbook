@@ -46,3 +46,10 @@ jobs:
           else
             sudo bash url2GSI.sh $ROM_LINK $ROM_TYPE --aonly
           fi
+
+      - name: Create tar.xz archives for each .img file
+        run: |
+          cd /home/runner/work/playbook/playbook/FoxetGSI-tool/output
+          for img_file in *.img; do
+            tar -cJf "${img_file%.img}.tar.xz" "$img_file"
+          done
